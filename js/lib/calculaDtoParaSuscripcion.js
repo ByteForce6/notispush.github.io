@@ -19,21 +19,19 @@ export function calculaDtoParaSuscripcion(suscripcion) {
     return b64.replace(/\+/g, "-").replace(/\//g, "_").replace(/=+$/g, "");
   }
 
-  const publicKey =
-    key === null
-      ? null
-      : base64ToBase64Url(
-          // @ts-ignore
-          btoa(String.fromCharCode.apply(null, new Uint8Array(key))),
-        );
+  if (key === null) throw new Error("Falta p256dh (publicKey) en la suscripción.");
+  if (token === null)
+    throw new Error("Falta auth (authToken) en la suscripción.");
 
-  const authToken =
-    token === null
-      ? null
-      : base64ToBase64Url(
-          // @ts-ignore
-          btoa(String.fromCharCode.apply(null, new Uint8Array(token))),
-        );
+  const publicKey = base64ToBase64Url(
+    // @ts-ignore
+    btoa(String.fromCharCode.apply(null, new Uint8Array(key))),
+  );
+
+  const authToken = base64ToBase64Url(
+    // @ts-ignore
+    btoa(String.fromCharCode.apply(null, new Uint8Array(token))),
+)
 
   // Fallback a aesgcm si el navegador no lo expone.
   const contentEncoding =
