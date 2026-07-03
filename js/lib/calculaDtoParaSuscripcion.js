@@ -6,44 +6,24 @@
  * @param { PushSubscription } suscripcion
  */
 export function calculaDtoParaSuscripcion(suscripcion) {
-  const key = suscripcion.getKey("p256dh");
-  const token = suscripcion.getKey("auth");
-  const json = suscripcion.toJSON();
-  const endpoint = suscripcion.endpoint;
-
-  /**
-   * Convierte base64 estándar a base64url (URL-safe) compatible con WebPush.
-   * @param {string} b64
-   */
-  function base64ToBase64Url(b64) {
-    return b64.replace(/\+/g, "-").replace(/\//g, "_").replace(/=+$/g, "");
-  }
-
-  if (key === null) throw new Error("Falta p256dh (publicKey) en la suscripción.");
-  if (token === null)
-    throw new Error("Falta auth (authToken) en la suscripción.");
-
-  const publicKey = base64ToBase64Url(
-    // @ts-ignore
-    btoa(String.fromCharCode.apply(null, new Uint8Array(key))),
-  );
-
-  const authToken = base64ToBase64Url(
-    // @ts-ignore
-    btoa(String.fromCharCode.apply(null, new Uint8Array(token))),
-)
-
-  // Fallback a aesgcm si el navegador no lo expone.
-  const contentEncoding =
-    typeof json?.contentEncoding === "string" && json.contentEncoding !== ""
-      ? json.contentEncoding
-      : "aesgcm";
-
-  return {
-    endpoint,
-    publicKey,
-    authToken,
-    contentEncoding,
-  };
+ const key = suscripcion.getKey("p256dh")
+ const token = suscripcion.getKey("auth")
+ const supported = PushManager.supportedContentEncodings
+ const encodings = Array.isArray(supported) && supported.length > 0
+  ? supported
+  : ["aesgcm"]
+ const endpoint = suscripcion.endpoint
+ const publicKey = key === null
+  ? null
+  : btoa(String.fromCharCode.apply(null, new Uint8Array(key)))
+ const authToken = token === null
+  ? null
+  : btoa(String.fromCharCode.apply(null, new Uint8Array(token)))
+ const contentEncoding = encodings[0]
+ return {
+  endpoint,
+  publicKey,
+  authToken,
+  contentEncoding
+ }
 }
-

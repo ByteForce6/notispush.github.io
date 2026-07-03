@@ -1,6 +1,6 @@
-import { consume } from "./consume.js";
-import { muestraObjeto } from "./muestraObjeto.js";
-import { recibeJson } from "./recibeJson.js";
+import { consume } from "./consume.js"
+import { muestraObjeto } from "./muestraObjeto.js"
+import { recibeJson } from "./recibeJson.js"
 
 /**
  * @param {string} url
@@ -8,8 +8,8 @@ import { recibeJson } from "./recibeJson.js";
  *  | "CONNECT" | "HEAD" } metodoHttp
  */
 export async function descargaVista(url, metodoHttp = "GET") {
-  const respuesta = await consume(recibeJson(url, metodoHttp));
-  const json = await respuesta.json();
-  muestraObjeto(document, json);
-  return json;
+ const respuesta = await consume(recibeJson(url, metodoHttp))
+ const json = await respuesta.json()
+ muestraObjeto(document, json)
+ return json
 }

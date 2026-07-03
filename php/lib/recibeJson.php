@@ -4,21 +4,21 @@ require_once __DIR__ . "/BAD_REQUEST.php";
 
 function recibeJson()
 {
- $json = json_decode(file_get_contents("php://input"));
+    $json = json_decode(file_get_contents("php://input"));
 
- if ($json === null) {
+    if ($json === null) {
 
-  http_response_code(BAD_REQUEST);
-  header("Content-Type: application/problem+json; charset=utf-8");
+        http_response_code(BAD_REQUEST);
+        header("Content-Type: application/problem+json; charset=utf-8");
 
-  echo '{' .
-   "status: " . BAD_REQUEST .
-   '"title": "Los datos recibidos no están en formato JSON."' .
-   '"type": "/errors/datosnojson.html"' .
-   '}';
+        echo '{' .
+            "status: " . BAD_REQUEST .
+            '"title": "Los datos recibidos no están en formato JSON."' .
+            '"type": "/errors/datosnojson.html"' .
+            '}';
 
-  exit();
- }
+        exit();
+    }
 
- return $json;
+    return $json;
 }

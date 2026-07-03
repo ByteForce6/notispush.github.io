@@ -3,25 +3,25 @@
 class Bd
 {
 
-  private static ?PDO $pdo = null;
+ private static ?PDO $pdo = null;
 
-  static function pdo(): PDO
-  {
-    if (self::$pdo === null) {
+ static function pdo(): PDO
+ {
+  if (self::$pdo === null) {
 
-      self::$pdo = new PDO(
-        // cadena de conexión
-        "sqlite:" . __DIR__ . "/notipush.db",
-        // usuario
-        null,
-        // contraseña
-        null,
-        // Opciones: pdos no persistentes y lanza excepciones.
-        [PDO::ATTR_PERSISTENT => false, PDO::ATTR_ERRMODE => PDO::ERRMODE_EXCEPTION]
-      );
+   self::$pdo = new PDO(
+    // cadena de conexión
+    "sqlite:" . __DIR__ . "/notipush.db",
+    // usuario
+    null,
+    // contraseña
+    null,
+    // Opciones: pdos no persistentes y lanza excepciones.
+    [PDO::ATTR_PERSISTENT => false, PDO::ATTR_ERRMODE => PDO::ERRMODE_EXCEPTION]
+   );
 
-      self::$pdo->exec(
-        'CREATE TABLE IF NOT EXISTS SUSCRIPCION (
+   self::$pdo->exec(
+    'CREATE TABLE IF NOT EXISTS SUSCRIPCION (
        SUS_ENDPOINT TEXT NOT NULL,
        SUS_PUB_KEY TEXT NOT NULL,
        SUS_AUT_TOK TEXT NOT NULL,
@@ -31,9 +31,9 @@ class Bd
       CONSTRAINT SUS_ENDPNT_NV
        CHECK(LENGTH(SUS_ENDPOINT) > 0)
      )'
-      );
-    }
-
-    return self::$pdo;
+   );
   }
+
+  return self::$pdo;
+ }
 }

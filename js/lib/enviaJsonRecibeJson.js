@@ -1,3 +1,4 @@
+
 /**
  * @param { string } url
  * @param { Object } body
@@ -5,12 +6,15 @@
  *  | "CONNECT" | "HEAD" } metodoHttp
  */
 export async function enviaJsonRecibeJson(url, body, metodoHttp = "POST") {
-  return fetch(url, {
-    method: metodoHttp,
-    headers: {
-      "Content-Type": "application/json",
-      Accept: "application/json, application/problem+json",
-    },
-    body: JSON.stringify(body),
-  });
+ return fetch(
+  url,
+  {
+   method: metodoHttp,
+   headers: {
+    "Content-Type": "application/json",
+    "Accept": "application/json, application/problem+json"
+   },
+   body: JSON.stringify(body)
+  }
+ )
 }
