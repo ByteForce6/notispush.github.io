@@ -1,0 +1,140 @@
+<!doctype html>
+<html lang="es">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width" />
+
+    <title>Notificaciones Push</title>
+
+    <script type="module" src="js/lib/manejaErrores.js"></script>
+  </head>
+
+  <body>
+    <h1>Notificaciones Push</h1>
+
+    <menu style="display: flex; list-style: none; flex-wrap: wrap; gap: 0.5rem">
+      <li>
+        <button id="btnSuscribe" type="button" hidden>Suscríbete</button>
+      </li>
+      <li>
+        <button id="btnCancela" type="button" hidden>
+          Cancela suscripción
+        </button>
+      </li>
+      <li>
+        <button id="btnNotifica" type="button" hidden>Notifica</button>
+      </li>
+      <li>
+        <a href="php/genera-llaves.php" target="_blank">Genera llaves</a>
+      </li>
+    </menu>
+
+    <p>
+      <output id="outEstado">
+        <progress max="100">Cargando&hellip;</progress>
+      </output>
+    </p>
+
+    <fieldset>
+      <legend>Reporte de envío a endpoints</legend>
+
+      <dl id="reporte"></dl>
+    </fieldset>
+
+    <script type="module">
+      import { activaNotificacionesPush } from "./js/lib/activaNotificacionesPush.js";
+      import { getSuscripcionPush } from "./js/lib/getSuscripcionPush.js";
+      import { suscribeAPush } from "./js/lib/suscribeAPush.js";
+      import { cancelaSuscripcionPush } from "./js/lib/cancelaSuscripcionPush.js";
+      import { urlBase64ToUint8Array } from "./js/lib/urlBase64ToUint8Array.js";
+      import { calculaDtoParaSuscripcion } from "./js/lib/calculaDtoParaSuscripcion.js";
+      import { consume } from "./js/lib/consume.js";
+      import { enviaJsonRecibeJson } from "./js/lib/enviaJsonRecibeJson.js";
+      import { descargaVista } from "./js/lib/descargaVista.js";
+      import { muestraError } from "./js/lib/muestraError.js";
+
+      const applicationServerKey = urlBase64ToUint8Array(
+        "BIJPyU72s-3wzkJ_39hfyPInpCaSOVUMkIR8Lmf-DRAKno8x3ckwzETYTq47ziq2QRfuRDFcpnZwYJ1Z1nXWtNo",
+      );
+      /** @enum {string} */
+      const Estado = {
+        CALCULANDO: "Calculando…",
+        SUSCRITO: "Suscrito",
+        DESUSCRITO: "Sin suscripción",
+        INCOMPATIBLE: "Incompatible",
+      };
+
+      preparaVista();
+      btnSuscribe.addEventListener("click", suscribe);
+      btnCancela.addEventListener("click", cancela);
+      btnNotifica.addEventListener("click", notificaDesdeElServidor);
+
+      async function preparaVista() {
+        try {
+          await activaNotificacionesPush("sw.js");
+          const suscripcion = await getSuscripcionPush();
+          if (suscripcion === null) {
+            muestraEstado(Estado.DESUSCRITO);
+          } else {
+            // Modifica la suscripción en el servidor,
+            const dto = calculaDtoParaSuscripcion(suscripcion);
+            await consume(
+              enviaJsonRecibeJson("php/suscripcion-modifica.php", dto),
+            );
+            muestraEstado(Estado.SUSCRITO);
+          }
+        } catch (error) {
+          muestraEstado(Estado.INCOMPATIBLE);
+          muestraError(error);
+        }
+      }
+
+      async function notificaDesdeElServidor() {
+        reporte.innerHTML = /* html */ `<progress max="100">Cargando&hellip;</progress>`;
+        await descargaVista("php/notifica.php", "POST");
+      }
+
+      async function suscribe() {
+        muestraEstado(Estado.CALCULANDO);
+        const suscripcion = await suscribeAPush(applicationServerKey);
+        // Agrega la suscripción al servidor,
+        const dto = calculaDtoParaSuscripcion(suscripcion);
+        await consume(enviaJsonRecibeJson("php/suscripcion-modifica.php", dto));
+        muestraEstado(Estado.SUSCRITO);
+      }
+
+      async function cancela() {
+        muestraEstado(Estado.CALCULANDO);
+        const suscripcion = await cancelaSuscripcionPush();
+        if (suscripcion !== null) {
+          // Elimina la suscripción en el servidor,
+          const dto = calculaDtoParaSuscripcion(suscripcion);
+          await consume(
+            enviaJsonRecibeJson("php/suscripcion-elimina.php", dto),
+          );
+          muestraEstado(Estado.DESUSCRITO);
+        }
+      }
+
+      /**
+       * @param {Estado} estado
+       */
+      function muestraEstado(estado) {
+        outEstado.value = estado;
+        if (estado === Estado.INCOMPATIBLE || estado === Estado.CALCULANDO) {
+          btnSuscribe.hidden = true;
+          btnCancela.hidden = true;
+          btnNotifica.hidden = true;
+        } else if (estado === Estado.SUSCRITO) {
+          btnSuscribe.hidden = true;
+          btnCancela.hidden = false;
+          btnNotifica.hidden = false;
+        } else if (estado === Estado.DESUSCRITO) {
+          btnSuscribe.hidden = false;
+          btnCancela.hidden = true;
+          btnNotifica.hidden = true;
+        }
+      }
+    </script>
+  </body>
+</html>
