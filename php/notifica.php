@@ -12,8 +12,8 @@ use Minishlink\WebPush\WebPush;
 const AUTH = [
     "VAPID" => [
         "subject" => "https://notispush.infinityfreeapp.com",
-        "publicKey" => "BIJPyU72s-3wzkJ_39hfyPInpCaSOVUMkIR8Lmf-DRAKno8x3ckwzETYTq47ziq2QRfuRDFcpnZwYJ1Z1nXWtNo",
-        "privateKey" => "lHLffbM6bVcEWQOQJrvjbEX7eDpUZwEuTL2m7trD74Q"
+        "publicKey" => "BNFrp97cZ7TdAs6_9xT0vb8zxRWS8K9fCxtWG9U9aKumdRArY0xO0cF4Filg_SvxPnKQViDWG7i_5dl-X5oO92U",
+        "privateKey" => "78k3TF-sx2fBYZdbEM2dWysqb62Zt4V-6Al_EpcymVg"
     ]
 ];
 
