@@ -19,9 +19,6 @@
         </button>
       </li>
       <li>
-        <button id="btnNotifica" type="button" hidden>Notifica</button>
-      </li>
-      <li>
         <a href="php/genera-llaves.php" target="_blank">Genera llaves</a>
       </li>
     </menu>
@@ -33,8 +30,12 @@
     </p>
 
     <fieldset>
-      <legend>Reporte de envío a endpoints</legend>
-      <dl id="reporte"></dl>
+      <legend>Mensaje de notificación</legend>
+      <textarea id="txtMensaje" rows="4" cols="50"></textarea>
+      <div style="margin-top: 0.5rem">
+        <button id="btnNotifica" type="button">Notifica</button>
+        <output id="outNotifica"></output>
+      </div>
     </fieldset>
 
     <script type="module">
@@ -42,6 +43,7 @@
       import { getSuscripcionPush } from "./js/lib/getSuscripcionPush.js";
       import { suscribeAPush } from "./js/lib/suscribeAPush.js";
       import { cancelaSuscripcionPush } from "./js/lib/cancelaSuscripcionPush.js";
+
       import { urlBase64ToUint8Array } from "./js/lib/urlBase64ToUint8Array.js";
       import { calculaDtoParaSuscripcion } from "./js/lib/calculaDtoParaSuscripcion.js";
       import { consume } from "./js/lib/consume.js";
@@ -50,7 +52,7 @@
       import { muestraError } from "./js/lib/muestraError.js";
 
       const applicationServerKey = urlBase64ToUint8Array(
-        "BMBlr6YznhYMX3NgcWIDRxZXs0sh7tCv7_YCsWcww0ZCv9WGg-tRCXfMEHTiBPCksSqeve1twlbmVAZFv7GSuj0",
+        "BIJPyU72s-3wzkJ_39hfyPInpCaSOVUMkIR8Lmf-DRAKno8x3ckwzETYTq47ziq2QRfuRDFcpnZwYJ1Z1nXWtNo",
       );
       /** @enum {string} */
       const Estado = {
@@ -60,77 +62,115 @@
         INCOMPATIBLE: "Incompatible",
       };
 
-      preparaVista();
-      btnSuscribe.addEventListener("click", suscribe);
-      btnCancela.addEventListener("click", cancela);
-      btnNotifica.addEventListener("click", notificaDesdeElServidor);
-
-      async function preparaVista() {
-        try {
-          await activaNotificacionesPush("sw.js");
-          const suscripcion = await getSuscripcionPush();
-          if (suscripcion === null) {
-            muestraEstado(Estado.DESUSCRITO);
-          } else {
-            // Modifica la suscripción en el servidor,
-            const dto = calculaDtoParaSuscripcion(suscripcion);
-            await consume(
-              enviaJsonRecibeJson("php/suscripcion-modifica.php", dto),
-            );
-            muestraEstado(Estado.SUSCRITO);
+      // ------------------------------------------------------------------
+      // Componente: EstadoSuscripcion
+      // Controla el <output id="outEstado"> y visibilidad de los botones.
+      // ------------------------------------------------------------------
+      const ComponenteEstadoSuscripcion = {
+        /** @param {Estado} estado */
+        muestra(estado) {
+          outEstado.value = estado;
+          if (estado === Estado.INCOMPATIBLE || estado === Estado.CALCULANDO) {
+            btnSuscribe.hidden = true;
+            btnCancela.hidden = true;
+            btnNotifica.hidden = true;
+          } else if (estado === Estado.SUSCRITO) {
+            btnSuscribe.hidden = true;
+            btnCancela.hidden = false;
+            btnNotifica.hidden = false;
+          } else if (estado === Estado.DESUSCRITO) {
+            btnSuscribe.hidden = false;
+            btnCancela.hidden = true;
+            btnNotifica.hidden = true;
           }
-        } catch (error) {
-          muestraEstado(Estado.INCOMPATIBLE);
-          muestraError(error);
-        }
-      }
+        },
+      };
 
-      async function notificaDesdeElServidor() {
-        reporte.innerHTML = /* html */ `<progress max="100">Cargando&hellip;</progress>`;
-        await descargaVista("php/notifica.php", "POST");
-      }
+      // ------------------------------------------------------------------
+      // Componente: Suscripcion
+      // Maneja alta, baja y sincronización inicial de la suscripción push.
+      // ------------------------------------------------------------------
+      const ComponenteSuscripcion = {
+        async init() {
+          try {
+            await activaNotificacionesPush("sw.js");
+            const suscripcion = await getSuscripcionPush();
+            if (suscripcion === null) {
+              ComponenteEstadoSuscripcion.muestra(Estado.DESUSCRITO);
+            } else {
+              const dto = calculaDtoParaSuscripcion(suscripcion);
+              await consume(
+                enviaJsonRecibeJson("php/suscripcion-modifica.php", dto),
+              );
+              ComponenteEstadoSuscripcion.muestra(Estado.SUSCRITO);
+            }
+          } catch (error) {
+            ComponenteEstadoSuscripcion.muestra(Estado.INCOMPATIBLE);
+            muestraError(error);
+          }
+        },
 
-      async function suscribe() {
-        muestraEstado(Estado.CALCULANDO);
-        const suscripcion = await suscribeAPush(applicationServerKey);
-        // Agrega la suscripción al servidor,
-        const dto = calculaDtoParaSuscripcion(suscripcion);
-        await consume(enviaJsonRecibeJson("php/suscripcion-modifica.php", dto));
-        muestraEstado(Estado.SUSCRITO);
-      }
-
-      async function cancela() {
-        muestraEstado(Estado.CALCULANDO);
-        const suscripcion = await cancelaSuscripcionPush();
-        if (suscripcion !== null) {
-          // Elimina la suscripción en el servidor,
+        async suscribe() {
+          ComponenteEstadoSuscripcion.muestra(Estado.CALCULANDO);
+          const suscripcion = await suscribeAPush(applicationServerKey);
+          // Agrega la suscripción al servidor,
           const dto = calculaDtoParaSuscripcion(suscripcion);
           await consume(
-            enviaJsonRecibeJson("php/suscripcion-elimina.php", dto),
+            enviaJsonRecibeJson("php/suscripcion-modifica.php", dto),
           );
-          muestraEstado(Estado.DESUSCRITO);
-        }
-      }
+          ComponenteEstadoSuscripcion.muestra(Estado.SUSCRITO);
+        },
 
-      /**
-       * @param {Estado} estado
-       */
-      function muestraEstado(estado) {
-        outEstado.value = estado;
-        if (estado === Estado.INCOMPATIBLE || estado === Estado.CALCULANDO) {
-          btnSuscribe.hidden = true;
-          btnCancela.hidden = true;
-          btnNotifica.hidden = true;
-        } else if (estado === Estado.SUSCRITO) {
-          btnSuscribe.hidden = true;
-          btnCancela.hidden = false;
-          btnNotifica.hidden = false;
-        } else if (estado === Estado.DESUSCRITO) {
-          btnSuscribe.hidden = false;
-          btnCancela.hidden = true;
-          btnNotifica.hidden = true;
-        }
-      }
+        async cancela() {
+          ComponenteEstadoSuscripcion.muestra(Estado.CALCULANDO);
+          const suscripcion = await cancelaSuscripcionPush();
+          if (suscripcion !== null) {
+            // Elimina la suscripción en el servidor,
+            const dto = calculaDtoParaSuscripcion(suscripcion);
+            await consume(
+              enviaJsonRecibeJson("php/suscripcion-elimina.php", dto),
+            );
+            ComponenteEstadoSuscripcion.muestra(Estado.DESUSCRITO);
+          }
+        },
+      };
+
+      // ------------------------------------------------------------------
+      // Componente: Notificacion
+      // Maneja el textarea y el envío de notificaciones personalizadas.
+      // El reporte de envío a endpoints ya no se muestra en la vista;
+      // solo se indica éxito o error mínimo en el <output id="outNotifica">.
+      // ------------------------------------------------------------------
+      const ComponenteNotificacion = {
+        async envia() {
+          outNotifica.value = "Enviando…";
+          btnNotifica.disabled = true;
+          const mensaje = txtMensaje.value;
+          try {
+            await consume(enviaJsonRecibeJson("php/notifica.php", { mensaje }));
+            outNotifica.value = "Notificación enviada";
+          } catch (error) {
+            outNotifica.value = "";
+            muestraError(error);
+          } finally {
+            btnNotifica.disabled = false;
+          }
+        },
+      };
+
+      // ------------------------------------------------------------------
+      // Arranque de la vista y enlace de eventos.
+      // ------------------------------------------------------------------
+      ComponenteSuscripcion.init();
+      btnSuscribe.addEventListener("click", () =>
+        ComponenteSuscripcion.suscribe(),
+      );
+      btnCancela.addEventListener("click", () =>
+        ComponenteSuscripcion.cancela(),
+      );
+      btnNotifica.addEventListener("click", () =>
+        ComponenteNotificacion.envia(),
+      );
     </script>
   </body>
 </html>

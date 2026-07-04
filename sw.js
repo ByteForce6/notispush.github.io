@@ -1,4 +1,4 @@
-const URL_SERVIDOR = "https://notipush.rf.gd";
+const URL_SERVIDOR = "https://notispush.infinityfreeapp.com";
 
 if (self instanceof ServiceWorkerGlobalScope) {
   // El siguiente código se activa cuando llega una notificación push.
